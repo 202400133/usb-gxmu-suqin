@@ -149,6 +149,9 @@ df$is_CVD<-as.factor(df$is_CVD);df$is_RPL<-as.factor(df$is_RPL)
 table(df$is_RPL,df$is_CVD)
 #df[,c("CVD_date","participant.p53_i0","end_date","is_CVD", "is_RPL", "follow_up")] %>%View()
 
+median(df$follow_up, na.rm = TRUE)
+median(df$follow_up_new, na.rm = TRUE)
+
 library(tidycmprsk)
 library(survminer)
 library(ggsurvfit)
