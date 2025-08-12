@@ -3,6 +3,11 @@ library(readr)
 library(dplyr)
 library(lubridate)
 
+
+# liaoming：E:\nas\ukbA\data\suqin\RPL and CVD原始数据\output2025.8.4
+# liaoming：file_path <- "E:/nas/ukbA/data/suqin/RPL and CVD原始数据/output2025.8.4/filtered_postbaseline_CVD_with_isCVD.csv"
+
+
 # 读取数据
 file_path <- "output/2025.8.4/filtered_postbaseline_CVD_with_isCVD.csv"
 df <- read_csv(file_path)
@@ -11,11 +16,32 @@ df <- read_csv(file_path)
 df <- df %>%
   mutate(
     CVD_date = as.Date(CVD_date),
-    participant.p53_i0 = as.Date(participant.p53_i0)
+    participant.p53_i0 = as.Date(participant.p53_i0),
+    # 设置随访截止日期
+    end_date = as.Date("2022-10-31")
   )
 
-# 设置随访截止日期
-end_date <- as.Date("2022-10-31")
+
+## liaoming 
+df$CVD_date_new<-ifelse(df$CVD_date > df$end_date,
+                        df$end_date,
+                        df$CVD_date) %>% as.Date()
+df[,c("CVD_date","CVD_date_new","participant.p53_i0","end_date","is_CVD", "is_RPL", "follow_up")] %>%View()
+
+df <- df %>%
+  mutate(
+    follow_up_new = round(
+      as.numeric(
+        if_else(
+          !is.na(CVD_date_new),
+          CVD_date_new - participant.p53_i0,
+          end_date - participant.p53_i0
+        )
+      ) / 365.25, 2  # 保留两位小数
+    )
+  )
+
+
 
 # 计算随访时间
 df <- df %>%
@@ -31,8 +57,12 @@ df <- df %>%
     )
   )
 
+colnames(df)
+#df[,c("CVD_date","participant.p53_i0","end_date","is_CVD", "is_RPL", "follow_up")] %>%View()
+df %>% mutate(check=df$participant.p53_i0>df$CVD_date) %>% select(check)%>% sum(na.rm = TRUE)
+
 # 保存回原文件
-write_csv(df, file_path)
+# write_csv(df, file_path)
 
 #第二步查看随访时间中位数
 library(readr)
@@ -41,6 +71,8 @@ library(dplyr)
 # 读取数据
 file_path <- "output/2025.8.4/filtered_postbaseline_CVD_with_isCVD.csv"
 df <- read_csv(file_path)
+
+
 
 # 计算 follow_up 中位数（忽略缺失值）
 median_follow_up <- median(df$follow_up, na.rm = TRUE)
@@ -109,4 +141,31 @@ legend("bottomright",
        legend = c("Non-RPL", "RPL"),
        col = c("blue", "red"),
        lty = 1:2)
+
+
+##### plot and save #####
+df[,c("CVD_date","participant.p53_i0","end_date","is_CVD", "is_RPL", "follow_up")] %>%str()
+df$is_CVD<-as.factor(df$is_CVD);df$is_RPL<-as.factor(df$is_RPL)
+table(df$is_RPL,df$is_CVD)
+#df[,c("CVD_date","participant.p53_i0","end_date","is_CVD", "is_RPL", "follow_up")] %>%View()
+
+median(df$follow_up, na.rm = TRUE)
+median(df$follow_up_new, na.rm = TRUE)
+
+library(tidycmprsk)
+library(survminer)
+library(ggsurvfit)
+library(survival)
+png("C:/Users/Administrator/Documents/GitHub/usb-gxmu-suqin/output/cvd_incidence_RPL.png",width = 960, height = 480)
+cuminc(Surv(follow_up_new, is_CVD) ~ is_RPL, df) %>%
+  ggcuminc(outcome = "1") +
+  add_confidence_interval() +
+  #add_risktable() +
+  scale_ggsurvfit()
+dev.off()
+
+
+# 单因素Cox回归分析，检验RPL是否为HCC发病的预测因素
+cox_fit <- coxph(Surv(follow_up_new, as.numeric(is_CVD)) ~ is_RPL, data = df) #可以校正年龄等多因素分析
+summary(cox_fit)
 
