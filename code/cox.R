@@ -64,6 +64,7 @@ df %>% mutate(check=df$participant.p53_i0>df$CVD_date) %>% select(check)%>% sum(
 # 保存回原文件
 # write_csv(df, file_path)
 
+
 #第二步查看随访时间中位数
 library(readr)
 library(dplyr)
@@ -91,7 +92,7 @@ file_path <- "output/2025.8.4/filtered_postbaseline_CVD_with_isCVD.csv"
 df <- read_csv(file_path)
 
 # 拟合 Cox 模型（仅含 is_RPL）
-cox_model <- coxph(Surv(follow_up, is_CVD) ~ is_RPL, data = df)
+cox_model <- coxph(Surv(follow_up_new, is_CVD) ~ is_RPL, data = df)
 
 # 提取 HR、95% CI、P 值
 hr <- exp(coef(cox_model))
@@ -110,10 +111,7 @@ cox_result <- data.frame(
 # 保存结果为 CSV
 write_csv(cox_result, "output/2025.8.5/cox_RPL_vs_CVD.csv")
 
-#用cuminc函数做可视化图
-# 如尚未安装，请先安装一次
-install.packages("cmprsk")
-
+# 加载所需包
 library(cmprsk)
 library(readr)
 
@@ -121,28 +119,31 @@ library(readr)
 file_path <- "output/2025.8.4/filtered_postbaseline_CVD_with_isCVD.csv"
 df <- read_csv(file_path)
 
-# 提取所需列
-ftime <- df$follow_up         # 随访时间
-fstatus <- df$is_CVD          # 是否发生CVD（事件=1，删失=0）
-group <- df$is_RPL            # 分组变量（RPL vs 非RPL）
+# 设置变量
+ftime <- df$follow_up_new
+fstatus <- df$is_CVD
+group <- df$is_RPL
 
-# 第四步使用 cuminc 函数进行分组累计发生概率分析
+# 计算累积发病率
 ci <- cuminc(ftime = ftime, fstatus = fstatus, group = group)
 
-# 绘图
+# 绘图（设置 y 轴范围为 0 到 0.25）
 plot(ci,
      col = c("blue", "red"),
      lty = 1:2,
-     xlab = "Follow-up time (years)",
+     xlab = "time (years)",
      ylab = "Cumulative Incidence of CVD",
-     main = "Cumulative Incidence of CVD by RPL Status")
+     main = "Cumulative Incidence of CVD by RPL Status",
+     ylim = c(0, 0.25))   # 👈 设置 y 轴范围
 
-legend("bottomright",
+# 图例放在左上角
+legend("topleft",
        legend = c("Non-RPL", "RPL"),
        col = c("blue", "red"),
        lty = 1:2)
 
 
+<<<<<<< Updated upstream
 ##### plot and save #####
 df[,c("CVD_date","participant.p53_i0","end_date","is_CVD", "is_RPL", "follow_up")] %>%str()
 df$is_CVD<-as.factor(df$is_CVD);df$is_RPL<-as.factor(df$is_RPL)
@@ -169,3 +170,5 @@ dev.off()
 cox_fit <- coxph(Surv(follow_up_new, as.numeric(is_CVD)) ~ is_RPL, data = df) #可以校正年龄等多因素分析
 summary(cox_fit)
 
+=======
+>>>>>>> Stashed changes
