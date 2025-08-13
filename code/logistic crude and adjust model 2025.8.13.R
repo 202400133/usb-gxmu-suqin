@@ -1,4 +1,4 @@
-# logistics回归分析粗模型、调整1、2、3模型
+# logistics回归分析粗模型、调整1、2、3、4模型
 library(dplyr)
 library(broom)
 library(readr)
